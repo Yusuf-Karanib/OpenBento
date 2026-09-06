@@ -814,7 +814,7 @@ export default function Admin() {
                           src={item.screenshot}
                           alt="Feedback screenshot"
                           className="max-h-40 rounded-md border border-slate-700 cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => window.open(item.screenshot!, '_blank')}
+                          onClick={() => window.open(item.screenshot!, '_blank', 'noopener,noreferrer')}
                           title="Click to view full size"
                           data-testid={`img-feedback-screenshot-${item.id}`}
                         />

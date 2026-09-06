@@ -18,6 +18,7 @@ import { streamHealRequestSchema } from "./services/stream-heal-guard";
 import { parseWeatherLookup, weatherLookupCacheKey } from "./services/weather-query";
 import { isAdminEmail } from "@shared/admin-access";
 import { getClientIp } from "./services/client-ip";
+import { validateFeedbackScreenshot } from "./services/feedback-screenshot";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Supabase Bearer-token middleware.
@@ -792,11 +793,9 @@ export async function registerRoutes(
       };
 
       if (screenshot && typeof screenshot === 'string') {
-        if (!screenshot.startsWith('data:image/')) {
-          return res.status(400).json({ error: "Invalid screenshot format. Must be a base64 data URL." });
-        }
-        if (screenshot.length > 7 * 1024 * 1024) {
-          return res.status(400).json({ error: "Screenshot too large. Must be under 5MB." });
+        const screenshotValidation = validateFeedbackScreenshot(screenshot);
+        if (!screenshotValidation.ok) {
+          return res.status(400).json({ error: screenshotValidation.error });
         }
         normalizedBody.screenshot = screenshot;
       }
