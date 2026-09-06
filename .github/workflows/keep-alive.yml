@@ -1,10 +1,37 @@
-name: Ping Supabase
+name: Keep Supabase Active
+
 on:
   schedule:
     - cron: '0 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
 jobs:
   ping:
     runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
     steps:
-      - name: Send Ping
-        run: curl -s "${{ secrets.VITE_SUPABASE_URL }}" > /dev/null
+      - name: Read one database row
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -z "$SUPABASE_URL" || -z "$SUPABASE_ANON_KEY" ]]; then
+            echo "::error::Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to this repository's Actions secrets."
+            exit 1
+          fi
+
+          curl \
+            --fail \
+            --silent \
+            --show-error \
+            --retry 2 \
+            --max-time 20 \
+            "$SUPABASE_URL/rest/v1/channels?select=id&limit=1" \
+            --header "apikey: $SUPABASE_ANON_KEY" \
+            --header "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            > /dev/null
