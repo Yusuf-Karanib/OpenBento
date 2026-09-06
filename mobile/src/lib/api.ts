@@ -11,6 +11,8 @@
 import { API_BASE_URL, getAccessToken } from './supabase';
 import type { DashboardPage } from '../types';
 
+const API_REQUEST_TIMEOUT_MS = 10_000;
+
 function joinUrl(base: string, path: string): string {
   if (!base) return path;
   const b = base.endsWith('/') ? base.slice(0, -1) : base;
@@ -23,12 +25,19 @@ async function authedFetch(method: string, path: string, body?: unknown): Promis
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   const token = await getAccessToken();
   if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(joinUrl(API_BASE_URL, path), {
-    method,
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
-  return res;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), API_REQUEST_TIMEOUT_MS);
+
+  try {
+    return await fetch(joinUrl(API_BASE_URL, path), {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function jsonOrThrow<T>(res: Response): Promise<T> {
