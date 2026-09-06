@@ -51,6 +51,7 @@ const laptopSocketTickets = new CastSocketTicketStore();
 
 const CODE_TTL_MS = 60_000;
 const SNAPSHOT_BYTES_LIMIT = 4 * 1024 * 1024;
+const WS_MESSAGE_BYTES_LIMIT = 16 * 1024;
 const CODE_RATE_WINDOW_MS = 60_000;
 const CODE_RATE_MAX = 10;
 const HEARTBEAT_INTERVAL_MS = 5_000;
@@ -744,7 +745,10 @@ export function setupCastHub(httpServer: HttpServer, app: Express): void {
   // their unguessable room UUID as the device credential so existing paired
   // TVs can reconnect without a signed-in browser being present.
   // ── WebSocket hub at /ws/cast?roomId=XXX&role=tv|laptop ─────────────────
-  const wss = new WebSocketServer({ noServer: true });
+  const wss = new WebSocketServer({
+    noServer: true,
+    maxPayload: WS_MESSAGE_BYTES_LIMIT,
+  });
 
   httpServer.on("upgrade", (request, socket, head) => {
     if (!request.url) return;
@@ -842,7 +846,7 @@ export function setupCastHub(httpServer: HttpServer, app: Express): void {
       ws.on("message", (data) => {
         try {
           const raw = String(data);
-          if (raw.length > 16 * 1024) return;
+          if (Buffer.byteLength(raw, "utf8") > WS_MESSAGE_BYTES_LIMIT) return;
           const parsed = JSON.parse(raw);
           if (parsed?.type === "ping") {
             sendTo(ws, { type: "pong", t: Date.now() });
