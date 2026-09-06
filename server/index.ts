@@ -11,25 +11,19 @@ import { createServer } from "http";
 const app = express();
 const httpServer = createServer(app);
 
+app.disable("x-powered-by");
+app.use((_req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  next();
+});
+
 // Published Replit apps sit behind one front proxy. Trust exactly that hop so
 // req.ip cannot be changed by prepending a fake X-Forwarded-For value. In local
 // development there is no trusted proxy, so Express uses the socket address.
 app.set("trust proxy", process.env.REPLIT_DEPLOYMENT === "1" ? 1 : false);
 
-declare module "http" {
-  interface IncomingMessage {
-    rawBody: unknown;
-  }
-}
-
-app.use(
-  express.json({
-    limit: '10mb',
-    verify: (req, _res, buf) => {
-      req.rawBody = buf;
-    },
-  }),
-);
+app.use(express.json({ limit: '10mb' }));
 
 app.use(express.urlencoded({ extended: false }));
 
@@ -63,7 +57,9 @@ app.use((req, res, next) => {
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    const message = status >= 500
+      ? "Internal Server Error"
+      : err.message || "Request failed";
 
     console.error("Internal Server Error:", err);
 
