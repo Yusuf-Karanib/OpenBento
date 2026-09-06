@@ -98,6 +98,16 @@ function unknownKickStatus(channelId: string): KickStatusPayload {
   return { isLive: null, viewerCount: 0, channelId, status: 'unknown' };
 }
 
+function sendInternalError(
+  req: Request,
+  res: Response,
+  error: unknown,
+  extra: Record<string, unknown> = {},
+): Response {
+  console.error(`[API] ${req.method} ${req.path} failed:`, error);
+  return res.status(500).json({ ...extra, error: "Internal server error" });
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -226,12 +236,10 @@ export async function registerRoutes(
         apiError: result.apiError || false,
       });
     } catch (error) {
-      console.error('[YouTube Live Check] Error:', error);
-      res.status(500).json({
+      sendInternalError(req, res, error, {
         channelId,
         isLive: null,
         apiError: true,
-        error: String(error)
       });
     }
   });
@@ -268,12 +276,10 @@ export async function registerRoutes(
         apiError: result.apiError || false,
       });
     } catch (error) {
-      console.error('[YouTube Video Live Check] Error:', error);
-      res.status(500).json({
+      sendInternalError(req, res, error, {
         videoId,
         isLive: null,
         apiError: true,
-        error: String(error)
       });
     }
   });
@@ -309,13 +315,11 @@ export async function registerRoutes(
         apiError: result.apiError || false,
       });
     } catch (error) {
-      console.error('[YouTube Search Live] Error:', error);
-      res.status(500).json({
+      sendInternalError(req, res, error, {
         channelHandle,
         isLive: false,
         latestVideoId: null,
         apiError: true,
-        error: String(error)
       });
     }
   });
@@ -357,10 +361,7 @@ export async function registerRoutes(
 
       res.json(result);
     } catch (error) {
-      res.status(500).json({
-        success: false,
-        error: String(error)
-      });
+      sendInternalError(req, res, error, { success: false });
     }
   });
 
@@ -400,10 +401,7 @@ export async function registerRoutes(
         });
       }
     } catch (error) {
-      res.status(500).json({
-        error: String(error),
-        videoId: null
-      });
+      sendInternalError(req, res, error, { videoId: null });
     }
   });
 
@@ -497,7 +495,7 @@ export async function registerRoutes(
         isLive: details.liveBroadcastContent === 'live'
       });
     } catch (error) {
-      res.status(500).json({ valid: false, error: String(error) });
+      sendInternalError(req, res, error, { valid: false });
     }
   });
 
@@ -516,7 +514,7 @@ export async function registerRoutes(
       const library = await storage.getUserLibrary(userId);
       res.json({ items: library });
     } catch (error) {
-      res.status(500).json({ error: String(error) });
+      sendInternalError(req, res, error);
     }
   });
 
@@ -537,7 +535,7 @@ export async function registerRoutes(
       const item = await storage.addToLibrary(validation.data);
       res.json({ item });
     } catch (error) {
-      res.status(500).json({ error: String(error) });
+      sendInternalError(req, res, error);
     }
   });
 
@@ -553,7 +551,7 @@ export async function registerRoutes(
       const deleted = await storage.removeFromLibrary(id, userId);
       res.json({ success: deleted });
     } catch (error) {
-      res.status(500).json({ error: String(error) });
+      sendInternalError(req, res, error);
     }
   });
 
@@ -580,7 +578,7 @@ export async function registerRoutes(
 
       res.json({ item: updated });
     } catch (error) {
-      res.status(500).json({ error: String(error) });
+      sendInternalError(req, res, error);
     }
   });
 
@@ -598,7 +596,7 @@ export async function registerRoutes(
       const dashboard = await storage.getDashboard(userId);
       res.json({ dashboard });
     } catch (error) {
-      res.status(500).json({ error: String(error) });
+      sendInternalError(req, res, error);
     }
   });
 
@@ -619,7 +617,7 @@ export async function registerRoutes(
       const dashboard = await storage.saveDashboard(validation.data);
       res.json({ dashboard });
     } catch (error) {
-      res.status(500).json({ error: String(error) });
+      sendInternalError(req, res, error);
     }
   });
 
@@ -644,7 +642,7 @@ export async function registerRoutes(
 
       res.json({ dashboard });
     } catch (error) {
-      res.status(500).json({ error: String(error) });
+      sendInternalError(req, res, error);
     }
   });
 
@@ -668,7 +666,7 @@ export async function registerRoutes(
       const data = await refreshAllLinks();
       res.json({ success: true, channelCount: data.channels.length, lastRefresh: data.lastRefresh });
     } catch (error) {
-      res.status(500).json({ success: false, error: String(error) });
+      sendInternalError(req, res, error, { success: false });
     }
   });
 
@@ -680,7 +678,7 @@ export async function registerRoutes(
       const channels = await storage.getAllChannels();
       res.json({ channels });
     } catch (error) {
-      res.status(500).json({ error: String(error) });
+      sendInternalError(req, res, error);
     }
   });
 
@@ -698,7 +696,7 @@ export async function registerRoutes(
       const channel = await storage.createChannel(validation.data);
       res.json({ channel });
     } catch (error) {
-      res.status(500).json({ error: String(error) });
+      sendInternalError(req, res, error);
     }
   });
 
@@ -734,7 +732,7 @@ export async function registerRoutes(
 
       res.json({ channel });
     } catch (error) {
-      res.status(500).json({ error: String(error) });
+      sendInternalError(req, res, error);
     }
   });
 
@@ -755,7 +753,7 @@ export async function registerRoutes(
 
       res.json({ success: true });
     } catch (error) {
-      res.status(500).json({ error: String(error) });
+      sendInternalError(req, res, error);
     }
   });
 
@@ -778,7 +776,7 @@ export async function registerRoutes(
       }
       res.json({ success: true });
     } catch (error) {
-      res.status(500).json({ error: String(error) });
+      sendInternalError(req, res, error);
     }
   });
 
@@ -871,8 +869,7 @@ export async function registerRoutes(
 
       res.json({ success: true, feedback: item });
     } catch (error) {
-      console.error('[Feedback] Error:', error);
-      res.status(500).json({ error: String(error) });
+      sendInternalError(req, res, error);
     }
   });
 
@@ -884,7 +881,7 @@ export async function registerRoutes(
       const items = await storage.getAllFeedback();
       res.json({ feedback: items });
     } catch (error) {
-      res.status(500).json({ error: String(error) });
+      sendInternalError(req, res, error);
     }
   });
 
@@ -917,7 +914,7 @@ export async function registerRoutes(
 
       res.json({ success: true, imported, total: linksData.channels.length });
     } catch (error) {
-      res.status(500).json({ error: String(error) });
+      sendInternalError(req, res, error);
     }
   });
 
@@ -982,8 +979,7 @@ export async function registerRoutes(
         throw fetchError;
       }
     } catch (error) {
-      console.error('[Admin] Error fetching users:', error);
-      res.status(500).json({ error: String(error) });
+      sendInternalError(req, res, error);
     }
   });
 
