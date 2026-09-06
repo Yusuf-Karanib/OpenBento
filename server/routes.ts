@@ -17,6 +17,7 @@ import { FixedWindowRateLimiter } from "./services/fixed-window-rate-limit";
 import { streamHealRequestSchema } from "./services/stream-heal-guard";
 import { parseWeatherLookup, weatherLookupCacheKey } from "./services/weather-query";
 import { isAdminEmail } from "@shared/admin-access";
+import { getClientIp } from "./services/client-ip";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Supabase Bearer-token middleware.
@@ -94,14 +95,6 @@ const newsCache = new LruTtlCache<Record<string, unknown>>({
 
 function unknownKickStatus(channelId: string): KickStatusPayload {
   return { isLive: null, viewerCount: 0, channelId, status: 'unknown' };
-}
-
-function requestIp(req: Request): string {
-  const forwarded = String(req.headers["x-forwarded-for"] ?? "")
-    .split(",")[0]
-    .trim()
-    .slice(0, 64);
-  return forwarded || req.socket.remoteAddress || "unknown";
 }
 
 export async function registerRoutes(
@@ -210,7 +203,7 @@ export async function registerRoutes(
     const { channelId } = req.params;
     const apiKey = process.env.YOUTUBE_API_KEY;
 
-    if (!youtubeSearchRateLimit.allow(requestIp(req))) {
+    if (!youtubeSearchRateLimit.allow(getClientIp(req))) {
       return res.status(429).json({ isLive: null, apiError: true, error: "Too many YouTube searches, slow down" });
     }
     if (!channelId || channelId.length > 200) {
@@ -253,7 +246,7 @@ export async function registerRoutes(
     if (!YOUTUBE_VIDEO_ID_PATTERN.test(videoId)) {
       return res.status(400).json({ isLive: null, apiError: true, error: "Invalid video ID" });
     }
-    if (!youtubeVideoRateLimit.allow(requestIp(req))) {
+    if (!youtubeVideoRateLimit.allow(getClientIp(req))) {
       return res.status(429).json({ isLive: null, apiError: true, error: "Too many YouTube checks, slow down" });
     }
 
@@ -291,7 +284,7 @@ export async function registerRoutes(
     const { channelHandle } = req.params;
     const apiKey = process.env.YOUTUBE_API_KEY;
 
-    if (!youtubeSearchRateLimit.allow(requestIp(req))) {
+    if (!youtubeSearchRateLimit.allow(getClientIp(req))) {
       return res.status(429).json({ isLive: false, apiError: true, error: "Too many YouTube searches, slow down" });
     }
     if (!channelHandle || channelHandle.length > 200) {
@@ -329,7 +322,7 @@ export async function registerRoutes(
   });
 
   app.post("/api/stream/heal", async (req, res) => {
-    if (!streamHealRateLimit.allow(requestIp(req))) {
+    if (!streamHealRateLimit.allow(getClientIp(req))) {
       return res.status(429).json({ success: false, error: "Too many repair requests, slow down" });
     }
 
@@ -376,7 +369,7 @@ export async function registerRoutes(
     const { channelId } = req.query;
     const apiKey = process.env.YOUTUBE_API_KEY;
 
-    if (!youtubeSearchRateLimit.allow(requestIp(req))) {
+    if (!youtubeSearchRateLimit.allow(getClientIp(req))) {
       return res.status(429).json({ error: "Too many YouTube searches, slow down", videoId: null });
     }
 
@@ -422,7 +415,7 @@ export async function registerRoutes(
     if (!channelId || !KICK_CHANNEL_PATTERN.test(channelId)) {
       return res.status(400).json({ isLive: null, error: "Invalid Kick channel" });
     }
-    if (!kickStatusRateLimit.allow(requestIp(req))) {
+    if (!kickStatusRateLimit.allow(getClientIp(req))) {
       return res.status(429).json({ isLive: null, error: "Too many Kick status checks, slow down" });
     }
 
@@ -476,7 +469,7 @@ export async function registerRoutes(
     if (!YOUTUBE_VIDEO_ID_PATTERN.test(videoId)) {
       return res.status(400).json({ valid: false, reason: "Invalid video ID" });
     }
-    if (!youtubeVideoRateLimit.allow(requestIp(req))) {
+    if (!youtubeVideoRateLimit.allow(getClientIp(req))) {
       return res.status(429).json({ valid: false, reason: "Too many YouTube checks, slow down" });
     }
 
@@ -824,9 +817,7 @@ export async function registerRoutes(
       const feedbackEmail = validation.data.userEmail;
 
       // Get client IP for rate limiting
-      const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
-        || req.socket.remoteAddress
-        || 'unknown';
+      const clientIp = getClientIp(req);
 
       try {
         const COOLDOWN_MINUTES = 15;
@@ -1005,7 +996,7 @@ export async function registerRoutes(
   // response always includes lat/lon so the client can request the matching
   // forecast without a second geocoding round-trip.
   app.get('/api/weather', async (req: Request, res: Response) => {
-    if (!publicDataRateLimit.allow(requestIp(req))) {
+    if (!publicDataRateLimit.allow(getClientIp(req))) {
       return res.status(429).json({ error: 'Too many public data requests. Please try again later.' });
     }
 
@@ -1060,7 +1051,7 @@ export async function registerRoutes(
   // Returns the next 3 days (excluding today) with min/max temps and the
   // representative icon. Accepts ?lat=&lon= or ?city=.
   app.get('/api/weather/forecast', async (req: Request, res: Response) => {
-    if (!publicDataRateLimit.allow(requestIp(req))) {
+    if (!publicDataRateLimit.allow(getClientIp(req))) {
       return res.status(429).json({ error: 'Too many public data requests. Please try again later.' });
     }
 
@@ -1176,7 +1167,7 @@ export async function registerRoutes(
   ]);
 
   app.get('/api/news', async (req: Request, res: Response) => {
-    if (!publicDataRateLimit.allow(requestIp(req))) {
+    if (!publicDataRateLimit.allow(getClientIp(req))) {
       return res.status(429).json({ error: 'Too many public data requests. Please try again later.' });
     }
 
@@ -1253,7 +1244,7 @@ export async function registerRoutes(
   void MARKETS_CACHE;
 
   app.get('/api/markets', async (req: Request, res: Response) => {
-    if (!publicDataRateLimit.allow(requestIp(req))) {
+    if (!publicDataRateLimit.allow(getClientIp(req))) {
       return res.status(429).json({ error: 'Too many public data requests. Please try again later.' });
     }
 
@@ -1328,7 +1319,7 @@ export async function registerRoutes(
     if (fresh) {
       return res.json(fresh);
     }
-    if (!githubLookupRateLimit.allow(requestIp(req))) {
+    if (!githubLookupRateLimit.allow(getClientIp(req))) {
       return res.status(429).json({ error: 'Too many GitHub lookups. Please try again later.' });
     }
     // Stale entry kept around for fallback if upstream fails or rate-limits.
@@ -1461,7 +1452,7 @@ export async function registerRoutes(
     const cacheKey = owner.toLowerCase();
     const fresh = GITHUB_USER_CACHE.get(cacheKey);
     if (fresh) return res.json(fresh);
-    if (!githubLookupRateLimit.allow(requestIp(req))) {
+    if (!githubLookupRateLimit.allow(getClientIp(req))) {
       return res.status(429).json({ error: 'Too many GitHub lookups. Please try again later.' });
     }
     const stale = GITHUB_USER_CACHE.get(cacheKey, true);
@@ -1643,7 +1634,7 @@ export async function registerRoutes(
     if (fresh) {
       return res.json(fresh);
     }
-    if (!rssLookupRateLimit.allow(requestIp(req))) {
+    if (!rssLookupRateLimit.allow(getClientIp(req))) {
       return res.status(429).json({ error: 'Too many feed lookups. Please try again later.' });
     }
     // SSRF guard helper: resolve hostname and verify EVERY A/AAAA record is
@@ -1790,7 +1781,7 @@ export async function registerRoutes(
   // elsewhere and the widget hides the row).
   const airQualityService = createAirQualityService();
   app.get('/api/air-quality', async (req: Request, res: Response) => {
-    if (!publicDataRateLimit.allow(requestIp(req))) {
+    if (!publicDataRateLimit.allow(getClientIp(req))) {
       return res.status(429).json({ error: 'Too many public data requests. Please try again later.' });
     }
 
@@ -1842,7 +1833,7 @@ export async function registerRoutes(
     const cacheKey = `${lat.toFixed(2)}:${lon.toFixed(2)}`;
     const cached = ISS_PASS_CACHE.get(cacheKey);
     if (cached) return res.json(cached);
-    if (!issPassRateLimit.allow(requestIp(req))) {
+    if (!issPassRateLimit.allow(getClientIp(req))) {
       return res.status(429).json({ error: 'Too many ISS pass lookups. Please try again later.' });
     }
 
@@ -2090,7 +2081,7 @@ export async function registerRoutes(
   });
 
   app.get('/api/ping', async (req: Request, res: Response) => {
-    if (!publicPingRateLimit.allow(requestIp(req))) {
+    if (!publicPingRateLimit.allow(getClientIp(req))) {
       return res.status(429).json({ error: 'Too many network checks, slow down' });
     }
 

@@ -26,6 +26,7 @@ import { z } from "zod";
 import { attachSupabaseUser, getUserId } from "./supabaseAuth";
 import { CastSocketTicketStore } from "./cast-socket-tickets";
 import { FixedWindowRateLimiter } from "./fixed-window-rate-limit";
+import { getClientIp } from "./client-ip";
 import {
   isValidTimeZone,
   minutesUntilSchedule,
@@ -118,14 +119,6 @@ async function purgeExpiredCodes(): Promise<void> {
       }
     }
   }
-}
-
-function requestIp(req: Request): string {
-  const forwarded = String(req.headers["x-forwarded-for"] ?? "")
-    .split(",")[0]
-    .trim()
-    .slice(0, 64);
-  return forwarded || req.socket.remoteAddress || "unknown";
 }
 
 function broadcast(roomId: string, payload: unknown, exclude?: WebSocket): void {
@@ -375,7 +368,7 @@ const layoutBody = z.object({
 export function setupCastHub(httpServer: HttpServer, app: Express): void {
   // ── Guest 6-digit pairing (unchanged behaviour) ──────────────────────────
   app.post("/api/cast/codes", async (req: Request, res: Response): Promise<void | Response> => {
-    if (!codeCreationRateLimit.allow(requestIp(req))) {
+    if (!codeCreationRateLimit.allow(getClientIp(req))) {
       return res.status(429).json({ error: "Too many pairing requests, slow down" });
     }
     await purgeExpiredCodes();
@@ -412,7 +405,7 @@ export function setupCastHub(httpServer: HttpServer, app: Express): void {
     await purgeExpiredCodes();
     const raw = String(req.body?.code ?? "").trim().toUpperCase();
     if (/^\d{6}$/.test(raw)) {
-      if (!pairAttemptRateLimit.allow(requestIp(req))) {
+      if (!pairAttemptRateLimit.allow(getClientIp(req))) {
         return res.status(429).json({ error: "Too many pairing attempts, slow down" });
       }
       const pending = pendingCodes.get(raw);

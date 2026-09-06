@@ -23,7 +23,7 @@ test('uncached GitHub widget lookups share an abuse limit', () => {
   );
 
   assert.equal(
-    githubRoutes.match(/githubLookupRateLimit\.allow\(requestIp\(req\)\)/g)?.length,
+    githubRoutes.match(/githubLookupRateLimit\.allow\(getClientIp\(req\)\)/g)?.length,
     2,
   );
   assert.equal(

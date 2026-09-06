@@ -9,6 +9,6 @@ test('the public network checker has an abuse limit', () => {
     routes.indexOf('// Auto-import channels on startup'),
   );
 
-  assert.match(pingRoute, /publicPingRateLimit\.allow\(requestIp\(req\)\)/);
+  assert.match(pingRoute, /publicPingRateLimit\.allow\(getClientIp\(req\)\)/);
   assert.match(pingRoute, /status\(429\)/);
 });

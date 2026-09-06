@@ -10,7 +10,7 @@ test('the public Kick checker validates input, limits abuse, and times out', () 
   );
 
   assert.match(kickRoute, /KICK_CHANNEL_PATTERN\.test\(channelId\)/);
-  assert.match(kickRoute, /kickStatusRateLimit\.allow\(requestIp\(req\)\)/);
+  assert.match(kickRoute, /kickStatusRateLimit\.allow\(getClientIp\(req\)\)/);
   assert.match(kickRoute, /status\(429\)/);
   assert.match(kickRoute, /AbortSignal\.timeout\(5_000\)/);
   assert.match(kickRoute, /kickStatusCache\.get\(channelId\)/);

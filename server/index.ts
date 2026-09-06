@@ -11,6 +11,11 @@ import { createServer } from "http";
 const app = express();
 const httpServer = createServer(app);
 
+// Published Replit apps sit behind one front proxy. Trust exactly that hop so
+// req.ip cannot be changed by prepending a fake X-Forwarded-For value. In local
+// development there is no trusted proxy, so Express uses the socket address.
+app.set("trust proxy", process.env.REPLIT_DEPLOYMENT === "1" ? 1 : false);
+
 declare module "http" {
   interface IncomingMessage {
     rawBody: unknown;

@@ -22,7 +22,7 @@ test('cached RSS responses skip DNS and upstream work', () => {
 test('uncached RSS lookups are limited and keep SSRF protections', () => {
   const route = rssRouteSource();
 
-  assert.match(route, /rssLookupRateLimit\.allow\(requestIp\(req\)\)/);
+  assert.match(route, /rssLookupRateLimit\.allow\(getClientIp\(req\)\)/);
   assert.match(route, /status\(429\)/);
   assert.match(route, /targets\.some\(isPrivateOrReservedIp\)/);
   assert.match(route, /redirect: 'manual'/);

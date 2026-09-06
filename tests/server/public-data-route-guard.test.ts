@@ -20,7 +20,7 @@ test('weather and news routes share an abuse limit', () => {
   const routes = readFileSync('server/routes.ts', 'utf8');
 
   const guardedRoutes = routes.match(
-    /publicDataRateLimit\.allow\(requestIp\(req\)\)/g,
+    /publicDataRateLimit\.allow\(getClientIp\(req\)\)/g,
   );
 
   assert.equal(guardedRoutes?.length, 5);

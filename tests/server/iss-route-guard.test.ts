@@ -10,7 +10,7 @@ test('uncached ISS pass predictions are rate limited', () => {
   );
 
   const cacheRead = passRoute.indexOf('ISS_PASS_CACHE.get(cacheKey)');
-  const limitCheck = passRoute.indexOf('issPassRateLimit.allow(requestIp(req))');
+  const limitCheck = passRoute.indexOf('issPassRateLimit.allow(getClientIp(req))');
 
   assert.ok(cacheRead >= 0);
   assert.ok(limitCheck > cacheRead);

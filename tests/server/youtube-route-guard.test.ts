@@ -17,9 +17,9 @@ test('public YouTube search routes share a request limit', () => {
     routes.indexOf('// Kick API proxy'),
   );
 
-  assert.match(channelRoute, /youtubeSearchRateLimit\.allow\(requestIp\(req\)\)/);
-  assert.match(handleRoute, /youtubeSearchRateLimit\.allow\(requestIp\(req\)\)/);
-  assert.match(legacyLiveRoute, /youtubeSearchRateLimit\.allow\(requestIp\(req\)\)/);
+  assert.match(channelRoute, /youtubeSearchRateLimit\.allow\(getClientIp\(req\)\)/);
+  assert.match(handleRoute, /youtubeSearchRateLimit\.allow\(getClientIp\(req\)\)/);
+  assert.match(legacyLiveRoute, /youtubeSearchRateLimit\.allow\(getClientIp\(req\)\)/);
   assert.match(channelRoute, /channelId\.length > 200/);
   assert.match(handleRoute, /channelHandle\.length > 200/);
   assert.match(legacyLiveRoute, /channelId\.length > 200/);
@@ -38,6 +38,6 @@ test('public YouTube video lookups validate IDs and share a generous request lim
 
   assert.match(videoLiveRoute, /YOUTUBE_VIDEO_ID_PATTERN\.test\(videoId\)/);
   assert.match(validateRoute, /YOUTUBE_VIDEO_ID_PATTERN\.test\(videoId\)/);
-  assert.match(videoLiveRoute, /youtubeVideoRateLimit\.allow\(requestIp\(req\)\)/);
-  assert.match(validateRoute, /youtubeVideoRateLimit\.allow\(requestIp\(req\)\)/);
+  assert.match(videoLiveRoute, /youtubeVideoRateLimit\.allow\(getClientIp\(req\)\)/);
+  assert.match(validateRoute, /youtubeVideoRateLimit\.allow\(getClientIp\(req\)\)/);
 });
