@@ -21,7 +21,10 @@ export interface LinksData {
   lastRefresh: number;
 }
 
-const LINKS_FILE_PATH = path.join(process.cwd(), 'server', 'data', 'links.json');
+// This version-controlled file is only a startup seed. Runtime refreshes must
+// stay in memory so a running Replit app never dirties its Git checkout.
+const LINKS_SEED_FILE_PATH = path.join(process.cwd(), 'server', 'data', 'links.json');
+let runtimeLinks: LinksData | null = null;
 
 
 async function fetchYouTubeLiveVideoId(channelHandle: string): Promise<YouTubeRefreshResult> {
@@ -71,19 +74,14 @@ async function fetchYouTubeLiveVideoId(channelHandle: string): Promise<YouTubeRe
   }
 }
 
-function ensureDataDirectory(): void {
-  const dataDir = path.dirname(LINKS_FILE_PATH);
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-    log('[LinkRefresher] Created data directory');
-  }
-}
-
 export function loadLinks(): LinksData {
+  if (runtimeLinks) {
+    return runtimeLinks;
+  }
+
   try {
-    ensureDataDirectory();
-    if (fs.existsSync(LINKS_FILE_PATH)) {
-      const data = fs.readFileSync(LINKS_FILE_PATH, 'utf-8');
+    if (fs.existsSync(LINKS_SEED_FILE_PATH)) {
+      const data = fs.readFileSync(LINKS_SEED_FILE_PATH, 'utf-8');
       return JSON.parse(data);
     }
   } catch (error) {
@@ -94,16 +92,6 @@ export function loadLinks(): LinksData {
     channels: [],
     lastRefresh: 0,
   };
-}
-
-function saveLinks(data: LinksData): void {
-  try {
-    ensureDataDirectory();
-    fs.writeFileSync(LINKS_FILE_PATH, JSON.stringify(data, null, 2));
-    log('[LinkRefresher] Links saved to disk');
-  } catch (error) {
-    log(`[LinkRefresher] Error saving links: ${error}`);
-  }
 }
 
 export async function refreshAllLinks(): Promise<LinksData> {
@@ -136,31 +124,10 @@ export async function refreshAllLinks(): Promise<LinksData> {
     lastRefresh: now,
   };
 
-  saveLinks(data);
+  runtimeLinks = data;
   log(`[LinkRefresher] Refresh complete. Updated ${channels.length} channels.`);
   
   return data;
-}
-
-const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
-
-export function startLinkRefresher(): void {
-  log('[LinkRefresher] Starting background link refresher (6h interval)');
-  
-  const existingData = loadLinks();
-  const timeSinceLastRefresh = Date.now() - existingData.lastRefresh;
-  
-  if (existingData.channels.length === 0 || timeSinceLastRefresh > SIX_HOURS_MS) {
-    log('[LinkRefresher] Running initial refresh...');
-    refreshAllLinks().catch(err => log(`[LinkRefresher] Initial refresh error: ${err}`));
-  } else {
-    log(`[LinkRefresher] Using cached links (last refresh: ${new Date(existingData.lastRefresh).toISOString()})`);
-  }
-
-  setInterval(() => {
-    log('[LinkRefresher] Running scheduled 6h refresh...');
-    refreshAllLinks().catch(err => log(`[LinkRefresher] Scheduled refresh error: ${err}`));
-  }, SIX_HOURS_MS);
 }
 
 export function getChannelUrl(channel: LiveChannel, origin: string): string {

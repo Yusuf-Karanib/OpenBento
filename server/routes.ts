@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { isIP } from "net";
 import { storage } from "./storage";
-import { loadLinks, refreshAllLinks, getChannelUrl, startLinkRefresher } from "./link-refresher";
+import { loadLinks, refreshAllLinks, getChannelUrl } from "./link-refresher";
 import { initializePulseCache, getGlobalStreamStatus, getStreamStatus, registerChannel } from "./services/pulse-cache";
 import { setupCastHub } from "./services/cast-hub";
 import { healStream, getVideoDetails, isMusicCategory, checkChannelLiveStatus, verifyVideoIsLive, searchChannelLiveStream, checkVideoLiveStatusById } from "./services/youtube-api";
@@ -101,8 +101,6 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  startLinkRefresher();
-
   initializePulseCache();
 
   app.get("/api/links", async (req, res) => {
