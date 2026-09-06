@@ -10,9 +10,10 @@ npm run build      # Build production bundle (client → dist/public, server →
 npm run start      # Run production server
 npm run check      # TypeScript type checking (no emit)
 npm run db:push    # Push Drizzle schema changes to PostgreSQL
+npm test           # Run the automated test suite
 ```
 
-No test runner is configured.
+Tests use Node's built-in test runner through `npm test`.
 
 ## Architecture
 
@@ -59,7 +60,7 @@ OpenBento is fully free and ad-supported. There is no premium tier, no paywall, 
 All defined in `server/routes.ts`. Key groups:
 - `/api/stream-status`, `/api/stream/heal`, `/api/youtube/*` — stream/media
 - `/api/dashboard`, `/api/library` — user dashboard and channel library
-- `/api/admin/*` — admin-only (gated by `ADMIN_EMAIL` env var)
+- `/api/admin/*` — admin-only (gated by the allowlist in `shared/admin-access.ts`)
 - `/api/weather`, `/api/news`, `/api/zoom/signature` — third-party widget data
 - `/api/feedback` — public, no auth required
 
@@ -73,10 +74,12 @@ Uses **Wouter** (not React Router). Routes defined in `client/src/App.tsx`:
 ### Environment Variables
 
 Required at runtime:
-- `DATABASE_URL` — Supabase PostgreSQL connection string in production
+- `SUPABASE_DATABASE_URL` — Supabase PostgreSQL connection string in production
 - `YOUTUBE_API_KEY`
 - `WEATHER_API_KEY`, `NEWS_API_KEY`
 - `RESEND_API_KEY`
 - `RESEND_FROM_EMAIL`
 - `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (client-side)
-- `ADMIN_EMAIL` — comma-separated list for admin access
+
+Admin access is controlled by the code allowlist in `shared/admin-access.ts`, not
+an environment variable.

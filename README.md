@@ -133,7 +133,6 @@ NEWS_API_KEY=
 RESEND_API_KEY=
 RESEND_FROM_EMAIL=
 SUPABASE_SERVICE_ROLE_KEY=
-ADMIN_EMAIL=
 PORT=5000
 ```
 
@@ -152,6 +151,7 @@ Notes:
   there.
 - Server-only secrets such as database URLs, service role keys, and third-party
   API keys must remain server-side.
+- Admin access is controlled by the allowlist in `shared/admin-access.ts`.
 - Some widgets or routes degrade gracefully when optional upstream API keys are
   missing, but integrations that call those providers will not fully work.
 
